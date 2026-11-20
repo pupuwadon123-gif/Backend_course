@@ -1,95 +1,101 @@
-import express from 'express';
+import express from "express";
 const app = express();
 const PORT = 1000;
 
 app.use(express.json());
 
-// ข้อมูลเริ่มต้น 3 รายการ และตัวนับ ID ใหม่ (ไม่ใช้ equipment.length + 1)
-let nextId = 104;
-const equipment = [
-  { id: 101, name: 'Laptop', category: 'computer', quantity: 5 },
-  { id: 102, name: 'Mouse', category: 'computer', quantity: 10 },
-  { id: 103, name: 'Projector', category: 'av', quantity: 2 }
+let students = [
+  { stdID: "69319010007", stdName: "นาย กฤษดา บุญเหลือ" },
+  { stdID: "69319010008", stdName: "นาย ญาณวุฒิ จันเพ็ง" },
+  { stdID: "69319010009", stdName: "นาย ณภัทร โสธรรมมงคล" },
+  { stdID: "69319010010", stdName: "นาย ธนดล คล้ายรัศมี" },
+  { stdID: "69319010011", stdName: "นาย ธีทัต จันทร์สว่าง" },
+  { stdID: "69319010012", stdName: "นาย นัฐพนธ์ ใจเย็น" },
+  { stdID: "69319010013", stdName: "นาย ปกรณ์เกียรติ อยู่พิทักษ์สกุล" },
+  { stdID: "69319010014", stdName: "นาย ปฏิพล เรืองชัย" },
+  { stdID: "69319010015", stdName: "นาย ปิยะพงษ์ เหล่าประชาวิทย์" },
+  { stdID: "69319010018", stdName: "นางสาว ภัทราวรินทร์ ศรีน้อย  " },
+  { stdID: "69319010019", stdName: "นาย ภูริพัฒน์ สุธรรมมา" },
+  { stdID: "69319010020", stdName: "นาย ภูวดล พลจารย์" },
+  { stdID: "69319010022", stdName: "นาย ศาศวัต แสงคําฉาย" },
+  { stdID: "69319010023", stdName: "นาย อภิรักษ ศรีวัดทานัง" },
+  { stdID: "69319010024", stdName: "นาย อัครพงษ์ ศรีสวัสดิ์" },
+  { stdID: "69319010025", stdName: "นาย อัครพงษ์ ศรีสวัสดิ์" },
+  { stdID: "69319010026", stdName: "นาย อัครพงษ์ ศรีสวัสดิ์" }
 ];
 
-// 1. GET /api/equipment และ ?category= (4 คะแนน)
-app.get('/api/equipment', (req, res) => {
-  const { category } = req.query;
-
-  // ตรวจ Query ก่อนนำไปใช้
-  if (category !== undefined) {
-    if (typeof category !== 'string' || category.trim() === '') {
-      return res.status(400).json({ message: 'Query parameter category cannot be empty' });
-    }
-    const targetCategory = category.trim().toLowerCase();
-    const filtered = equipment.filter(
-      item => item.category.toLowerCase() === targetCategory
-    );
-    return res.status(200).json(filtered);
-  }
-
-  res.status(200).json(equipment);
+app.get('/api/students', (req, res) => {
+  res.status(200).json(students);
 });
 
-// 2. GET /api/equipment/count (วางไว้ก่อน /:id เสมอ)
-app.get('/api/equipment/count', (req, res) => {
-  res.status(200).json({ total: equipment.length });
+app.get('/api/students/:stdID', (req, res) => {
+  const { stdID } = req.params;
+  const student = students.find(s => s.stdID === stdID);
+
+  if (!student) {
+    return res.status(404).json({ message: 'ไม่พบข้อมูลนักศึกษา' });
+  }
+  res.status(200).json(student);
 });
 
-// 3. GET /api/equipment/:id (4 คะแนน)
-app.get('/api/equipment/:id', (req, res) => {
-  const rawId = req.params.id.trim();
-  const id = Number(rawId);
+app.post('/api/students', (req, res) => {
+  const { stdID, stdName } = req.body;
 
-  // ดัก ID ผิดรูปแบบ (ไม่ใช่จำนวนเต็มที่ปลอดภัย) ได้ 400
-  if (rawId === '' || !Number.isSafeInteger(id)) {
-    return res.status(400).json({ message: 'Invalid ID format' });
+  if (!stdID || !stdName) {
+    return res.status(400).json({ message: 'กรุณาระบุ stdID และ stdName ให้ครบถ้วน' });
   }
 
-  const item = equipment.find(e => e.id === id);
-  if (!item) {
-    return res.status(404).json({ message: 'Equipment not found' });
+  const isDuplicate = students.some(s => s.stdID === String(stdID).trim());
+  if (isDuplicate) {
+    return res.status(400).json({ message: 'รหัสนักศึกษานี้มีอยู่ในระบบแล้ว' });
   }
 
-  res.status(200).json(item);
-});
-
-// 4. POST /api/equipment พร้อม Validation ครบตามเงื่อนไข (6 คะแนน)
-app.post('/api/equipment', (req, res) => {
-  const { name, category, quantity } = req.body || {};
-
-  // เงื่อนไข: name เป็น String ไม่ว่างหลัง trim()
-  if (typeof name !== 'string' || name.trim() === '') {
-    return res.status(400).json({ message: 'name must be a non-empty string' });
-  }
-
-  // เงื่อนไข: category เป็น String ไม่ว่างหลัง trim()
-  if (typeof category !== 'string' || category.trim() === '') {
-    return res.status(400).json({ message: 'category must be a non-empty string' });
-  }
-
-  // เงื่อนไข: quantity เป็นจำนวนเต็มที่ปลอดภัย (Safe Integer) ตั้งแต่ 0 ขึ้นไป
-  if (typeof quantity !== 'number' || !Number.isSafeInteger(quantity) || quantity < 0) {
-    return res.status(400).json({ message: 'quantity must be a safe integer >= 0' });
-  }
-
-  const newItem = {
-    id: nextId++,
-    name: name.trim(),
-    category: category.trim(),
-    quantity
+  const newStudent = {
+    stdID: String(stdID).trim(),
+    stdName: String(stdName).trim()
   };
 
-  equipment.push(newItem);
-  res.status(201).json(newItem);
+  students.push(newStudent);
+  res.status(201).json({
+    message: 'เพิ่มข้อมูลนักศึกษาสำเร็จ',
+    data: newStudent
+  });
 });
 
-// 5. Error Handler สำหรับ JSON รูปแบบผิด ได้ 400 ไม่ใช่ 500
-app.use((err, req, res, next) => {
-  if (err instanceof SyntaxError && err.status === 400 && 'body' in err) {
-    return res.status(400).json({ message: 'Invalid JSON format' });
+
+app.patch('/api/students/:stdID', (req, res) => {
+  const { stdID } = req.params;
+  const student = students.find(s => s.stdID === stdID);
+
+  if (!student) {
+    return res.status(404).json({ message: 'ไม่พบข้อมูลนักศึกษา' });
   }
-  next(err);
+
+  if (!req.body || !req.body.stdName) {
+    return res.status(400).json({ message: 'กรุณาระบุ stdName ที่ต้องการแก้ไข' });
+  }
+
+  student.stdName = String(req.body.stdName).trim();
+  res.status(200).json({
+    message: 'แก้ไขข้อมูลนักศึกษาสำเร็จ',
+    data: student
+  });
+});
+
+
+app.delete('/api/students/:stdID', (req, res) => {
+  const { stdID } = req.params;
+  const index = students.findIndex(s => s.stdID === stdID);
+
+  if (index === -1) {
+    return res.status(404).json({ message: 'ไม่พบข้อมูลนักศึกษา' });
+  }
+
+  const [deletedStudent] = students.splice(index, 1);
+  res.status(200).json({
+    message: 'ลบข้อมูลนักศึกษาสำเร็จ',
+    data: deletedStudent
+  });
 });
 
 app.listen(PORT, () => {
